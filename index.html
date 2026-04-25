@@ -31,7 +31,7 @@ select:focus { border-color: #003087; }
 .btn-outline:hover { background: #f5f7fa; }
 .count-chip { background: #e8f0fe; color: #003087; padding: 3px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 600; margin-left: auto; }
 .table-wrap { padding: 14px 20px; overflow: auto; }
-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.07); min-width: 1100px; }
+table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.07); min-width: 1380px; }
 thead tr { background: #003087; }
 th { padding: 9px 11px; text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: white; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
 th:hover { background: #00246b; }
@@ -73,6 +73,11 @@ tr:hover td { background: #fafbff; }
 .idx-fixed { color: #6b4f00; }
 .idx-min { color: #4a5568; }
 .idx-ahpra { color: #2d7a3a; }
+.nsw-cell { font-size: 11px; color: #333; }
+.diff-higher { color: #b91c1c; font-weight: 600; font-size: 11px; }
+.diff-lower { color: #166534; font-weight: 600; font-size: 11px; }
+.diff-same { color: #555; font-size: 11px; }
+.diff-na { color: #aaa; font-size: 11px; }
 .no-results { text-align: center; padding: 48px 20px; color: #999; }
 .footer { background: white; border-top: 1px solid #e0e4ed; padding: 9px 20px; font-size: 11px; color: #999; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
 .disclaimer { background: #fffbea; border-left: 3px solid #f59e0b; padding: 8px 14px; margin: 0 20px 12px; font-size: 11px; color: #7c5a00; border-radius: 3px; }
@@ -159,6 +164,8 @@ tr:hover td { background: #fafbff; }
       <th onclick="sort(4)">Governing Legislation <span class="si">↕</span></th>
       <th onclick="sort(5)">Concessions <span class="si">↕</span></th>
       <th onclick="sort(6)">Indexation Basis <span class="si">↕</span></th>
+      <th onclick="sort(7)">NSW Equiv. <span class="si">↕</span></th>
+      <th onclick="sort(8)">Vic vs NSW <span class="si">↕</span></th>
       <th>Source</th>
     </tr>
   </thead>
@@ -767,6 +774,90 @@ function getIdx(f){
   }
   return {cls:'idx-mu',txt:'Fee unit · Monetary Units Act 2004 · +3.00% p.a. (Treasurer determination)'};
 }
+function getNSW(f){
+  const n=f.n||'',area=f.area||'',dc=f.dc||'',an=f.an||0;
+  if(f.type==='Penalty') return {amt:'Penalty unit: $110–$123',an:null,note:'NSW general penalty unit $110 (Crimes Act) or $123.31 (WHS Act 2025-26) vs Vic $203.51'};
+  // Vehicle Registration
+  if(n.includes('Vehicle Registration – Petrol')) return {amt:'~$462 (medium car)',an:462,note:'NSW: $82 flat fee + vehicle tax by tare weight; ~$380 for 1155–1504kg; Vic fee excludes TAC'};
+  if(n.includes('Vehicle Registration – Electric')) return {amt:'~$462 (medium car)',an:462,note:'NSW: no EV discount on rego fee component; same weight-based structure as petrol'};
+  if(n.includes('Transport Accident Charge')||n.includes('CTP Insurance')) return {amt:'~$400–$700 (market)',an:null,note:"NSW CTP (Green Slip) competitively set by private insurers; no government TAC equivalent"};
+  if(n.includes('Number Plate Fee')) return {amt:'Incl. in rego',an:null,note:'NSW plates included in initial registration cost; no separate renewal plate fee'};
+  // Driver licences
+  if(n.includes('Driver Licence Renewal – Car (3 years)')) return {amt:'$168',an:168,note:'NSW unrestricted (gold) car licence 3 years'};
+  if(n.includes('Driver Licence Renewal – Car (5 years)')) return {amt:'$228',an:228,note:'NSW unrestricted car licence 5 years'};
+  if(n.includes('Driver Licence Renewal – Car (10 years)')) return {amt:'$422',an:422,note:'NSW unrestricted car licence 10 years (age 21–44 only)'};
+  if(n.includes('Learner Permit – Car')) return {amt:'$31',an:31,note:'NSW learner licence fee'};
+  if(n.includes('Hazard Perception Test')) return {amt:'$57',an:57,note:'NSW Hazard Perception Test — significantly higher than Victoria'};
+  if(n.includes('Boat/Vessel Registration')||n.includes('Recreational Marine Licence')) return {amt:'Varies by class',an:null,note:'NSW vessel registration fees under Marine Safety Act 1998; different weight/class structure'};
+  // SRO taxes & duties
+  if(area==='Land Transfer Duty'){
+    if(n.includes('First Home Buyer')) return {amt:'Nil up to $800k',an:0,note:'NSW FHB exemption up to $800,000 (higher than Vic $600,000); concession $800k–$1m'};
+    if(n.includes('up to $25,000')) return {amt:'1.25% (min $10)',an:null,note:'NSW: 1.25% on first $16,000; similar entry-level rate to Vic'};
+    if(n.includes('$960,001')) return {amt:'$47,295 + 5.5%',an:null,note:'NSW: 5.5% bracket applies above $1,168,001 (vs Vic 5.5% flat above $960k)'};
+    if(n.includes('over $2,000,000')) return {amt:'5.5–7.0% (premium)',an:null,note:'NSW: 5.5% standard; premium 7% over $3,721,000 residential (vs Vic 6.5% over $2m)'};
+    return {amt:'Different brackets',an:null,note:'NSW transfer duty uses different thresholds; Revenue NSW rates generally comparable to Victoria mid-range'};
+  }
+  if(area==='Motor Vehicle Duty') return {amt:'3% of market value',an:null,note:'NSW motor vehicle duty: 3% for private buyers; EVs may be exempt — different structure to Vic'};
+  if(area==='Land Tax'){
+    if(n.includes('Absentee')) return {amt:'5% surcharge',an:null,note:'NSW foreign purchaser surcharge land tax: 5% (vs Vic 4% absentee owner surcharge)'};
+    return {amt:'$100 + 1.6% above $1.075m',an:null,note:'NSW land tax: much higher threshold ($1.075m vs Vic $300k); lower taper rate 1.6–2%'};
+  }
+  if(area==='Payroll Tax') return {amt:'5.45% above $1.2m',an:null,note:'NSW: 5.45% above $1,200,000 threshold (Vic: 4.85% above $700,000 — lower rate, lower threshold)'};
+  if(area==='Congestion Levy') return {amt:'No direct equiv.',an:null,note:'NSW has no state congestion levy; Sydney CBD parking space levy applies in lieu'};
+  if(area==='Fire Services Property Levy') return {amt:'No direct equiv.',an:null,note:'NSW fire services funded via state budget and insurance industry levy; no direct property charge'};
+  if(area==='Planning Levy'||area==='Metropolitan Planning Levy') return {amt:'No direct equiv.',an:null,note:'NSW infrastructure contributions under EP&A Act; no direct metropolitan planning levy equivalent'};
+  if(area==='Gambling Taxation'){
+    if(n.includes('EGM')) return {amt:'7.6%–55.1% GGR (tiered)',an:null,note:'NSW EGM tax: tiered structure for clubs vs hotels; generally lower than Vic 31.57% for comparable venues'};
+    if(n.includes('Keno')) return {amt:'~8.46% net revenue',an:null,note:'NSW keno duty approximately 8.46% net revenue — comparable to Vic 8.33%'};
+    return {amt:'Different structure',an:null,note:'NSW gambling taxes differ by game type and venue class'};
+  }
+  // Health
+  if(area==='Ambulance Services'){
+    if(n.includes('Metropolitan')) return {amt:'$464 + $4.18/km',an:464,note:'NSW emergency: $464 call-out + $4.18/km (max $7,601 cap); Vic charges a much higher flat rate'};
+    if(n.includes('Rural')) return {amt:'$464 + $4.18/km',an:464,note:'NSW uses same base call-out rate regardless of metro/rural; per-km charge covers distance'};
+    if(n.includes('Membership')) return {amt:'No equiv. scheme',an:null,note:'NSW Ambulance offers no membership; residents rely on private health insurance for cover'};
+  }
+  if(area==='Hospital Fees') return {amt:'~$496/day (insured)',an:496,note:'NSW public hospital insured overnight ~$496/day (Ministerial Direction); same-day similar to Vic'};
+  if(area==='Health Practitioner Registration') return {amt:'Same (national)',an:an,note:'AHPRA fees set nationally and apply equally in NSW and Victoria'};
+  if(area==='Health Services Regulation') return {amt:'Varies — NSW Health',an:null,note:'NSW health facility licences under Public Health Act 2010; broadly comparable cost structure'};
+  // Fisheries fees
+  if(area==='Fisheries & Aquaculture'){
+    const nl=n.toLowerCase();
+    if(nl.includes('recreational fishing licence')||nl.includes('levy for recreational')){
+      if(n.includes('1 year')||nl.includes('annual')) return {amt:'$35',an:35,note:'NSW 1-year recreational fishing licence (Service NSW; cheaper than Vic)'};
+      if(n.includes('3 year')) return {amt:'$85',an:85,note:'NSW 3-year recreational fishing licence (cheaper than Vic)'};
+      if(n.includes('28 day')) return {amt:'$14',an:14,note:'NSW 1-month recreational fishing licence (comparable to Vic 28-day)'};
+      if(n.includes('3 day')) return {amt:'$7',an:7,note:'NSW 3-day recreational fishing licence (cheaper than Vic)'};
+    }
+    return {amt:'Different schedule',an:null,note:'NSW commercial fisheries fees under Fisheries Management Act 1994; different licensing structure'};
+  }
+  // Court fees
+  if(area&&area.includes('Court')){
+    if(n.includes("Magistrates'")&&n.includes('≤$10,000')) return {amt:'$172',an:172,note:'NSW Local Court small claims division: $172 standard filing fee'};
+    if(n.includes("Magistrates'")&&n.includes('filing')) return {amt:'$355',an:355,note:'NSW Local Court general division: $355 standard; $710 corporation'};
+    if(n.includes("Magistrates'")) return {amt:'$172–$355',an:263,note:'NSW Local Court: $172 (small claims) to $355 (general div) standard individual rate'};
+    if(n.includes('VCAT')) return {amt:'NCAT ~$52–$548',an:null,note:'NSW NCAT (Civil & Administrative Tribunal) has comparable filing fees; see ncat.nsw.gov.au'};
+    if(n.includes('County')||n.includes('District')) return {amt:'~$400–$600',an:500,note:'NSW District Court filing fees in comparable range; see districtcourt.nsw.gov.au'};
+    if(n.includes('Supreme')) return {amt:'~$840–$1,600',an:1220,note:'NSW Supreme Court filing fees in comparable range; indexed annually via regulation'};
+    if(n.includes('Coroner')||n.includes('Coronial')) return {amt:'Nil',an:0,note:'NSW Coroners Court: no filing fees charged — same policy as Victoria'};
+    if(n.includes("Children's")) return {amt:'Nil',an:0,note:'NSW Children\'s Court: no filing fees charged — same policy as Victoria'};
+    return {amt:'Similar range',an:null,note:'NSW court fees similarly structured and indexed; see relevant NSW court website'};
+  }
+  // FOI
+  if(area==='Freedom of Information') return {amt:'$30 application',an:null,note:'NSW GIPA Act: $30 application fee; processing at $30/hr after 5 free hrs — broadly comparable'};
+  // Other agencies
+  if(dc==='b-vcglr') return {amt:'Different schedule',an:null,note:'NSW liquor licence fees under Liquor Act 2007 (ILGA); different tiered structure'};
+  if(dc==='b-esv') return {amt:'Different schedule',an:null,note:'NSW electrical/gas licensing under SafeWork NSW / Fair Trading; broadly comparable ranges'};
+  if(dc==='b-epa') return {amt:'Different schedule',an:null,note:'NSW EPA fees under Protection of the Environment Operations Act 1997; different activity-based structure'};
+  if(dc==='b-parks') return {amt:'Varies by park',an:null,note:'NSW NPWS camping fees broadly comparable; set per park — see nationalparks.nsw.gov.au'};
+  if(dc==='b-worksafe') return {amt:'Different schedule',an:null,note:'NSW SafeWork / icare sets WHS fees and workers comp premiums; different structure'};
+  if(dc==='b-planning') return {amt:'Different schedule',an:null,note:'NSW planning fees under EP&A Regulation 2021; broadly comparable scale-based structure'};
+  if(dc==='b-deeca') return {amt:'Different schedule',an:null,note:'NSW resources/mining fees under Mining Act 1992; different structure'};
+  if(dc==='b-dffh') return {amt:'Different schedule',an:null,note:'NSW equivalent fees under Dept of Communities & Justice; different structure'};
+  if(dc==='b-land') return {amt:'Different schedule',an:null,note:'NSW land registry fees under Real Property Act 1900; broadly comparable range'};
+  if(dc==='b-djcs') return {amt:'Different schedule',an:null,note:'NSW consumer affairs / fair trading fees set by Fair Trading Act 1987; different structure'};
+  return {amt:'—',an:null,note:''};
+}
 function filter(){
   const q=document.getElementById('q').value.toLowerCase();
   const fd=document.getElementById('fDept').value;
@@ -781,9 +872,11 @@ function filter(){
   if(sc>=0)doSort();render();
 }
 function doSort(){
-  const keys=['n','dept','area','amt','leg','conc','_idx'];
+  const keys=['n','dept','area','amt','leg','conc','_idx','_nsw','_diff'];
   const k=keys[sc];
   if(k==='_idx') filtered.sort((a,b)=>sd*getIdx(a).txt.localeCompare(getIdx(b).txt));
+  else if(k==='_nsw') filtered.sort((a,b)=>sd*getNSW(a).amt.localeCompare(getNSW(b).amt));
+  else if(k==='_diff') filtered.sort((a,b)=>{const da=(a.an||0)-(getNSW(a).an||0),db=(b.an||0)-(getNSW(b).an||0);return sd*(da-db);});
   else filtered.sort((a,b)=>k==='amt'?sd*(a.an-b.an):sd*(a[k]||'').localeCompare(b[k]||''));
 }
 function sort(c){if(sc===c)sd*=-1;else{sc=c;sd=1;}doSort();render();}
@@ -793,7 +886,18 @@ function render(){
   const nr=document.getElementById('nores');
   if(!filtered.length){tb.innerHTML='';nr.style.display='block';return;}
   nr.style.display='none';
-  tb.innerHTML=filtered.map(f=>{const ix=getIdx(f);return`<tr>
+  tb.innerHTML=filtered.map(f=>{
+    const ix=getIdx(f);
+    const nsw=getNSW(f);
+    let diffHtml='<span class="diff-na">—</span>';
+    if(nsw.an!==null&&f.an>0&&nsw.an>0){
+      const d=f.an-nsw.an;
+      const pct=Math.abs(d/nsw.an*100).toFixed(0);
+      if(Math.abs(d)<0.5) diffHtml='<span class="diff-same">≈ Same</span>';
+      else if(d>0) diffHtml=`<span class="diff-higher">+$${d.toFixed(2)}<br><small>Vic ${pct}% higher</small></span>`;
+      else diffHtml=`<span class="diff-lower">−$${Math.abs(d).toFixed(2)}<br><small>NSW ${pct}% higher</small></span>`;
+    } else if(nsw.an===0&&f.an===0) diffHtml='<span class="diff-same">≈ Same</span>';
+    return`<tr>
     <td><div class="fee-name">${f.n}</div>${f.note?'<div class="note">'+f.note+'</div>':''}</td>
     <td><span class="badge ${f.dc}">${f.dept}</span></td>
     <td>${f.area}</td>
@@ -802,8 +906,10 @@ function render(){
     <td class="leg">${f.leg}</td>
     <td class="${f.conc&&f.conc!=='None'?'conc':'no-conc'}">${f.conc||'None'}</td>
     <td class="idx-cell ${ix.cls}">${ix.txt}</td>
+    <td class="nsw-cell" title="${nsw.note}">${nsw.amt}</td>
+    <td>${diffHtml}</td>
     <td class="src"><a href="${f.src}" target="_blank">View ↗</a></td>
-  </tr>`}).join('');
+  </tr>`;}).join('');
 }
 function clear_(){
   document.getElementById('q').value='';
@@ -811,8 +917,8 @@ function clear_(){
   filter();
 }
 function exportCSV(){
-  const hdr=['Fee/Penalty','Department/Agency','Area','Type','Amount 2025-26','Governing Legislation','Concessions','Indexation Basis','Source URL','Notes'];
-  const rows=filtered.map(f=>[f.n,f.dept,f.area,f.type||'Fee',f.amt,f.leg,f.conc||'',getIdx(f).txt,f.src,f.note||'']);
+  const hdr=['Fee/Penalty','Department/Agency','Area','Type','Amount 2025-26 (Vic)','Governing Legislation','Concessions','Indexation Basis','NSW Equivalent','Vic vs NSW','Source URL','Notes'];
+  const rows=filtered.map(f=>{const nsw=getNSW(f);const d=(nsw.an!==null&&f.an>0&&nsw.an>0)?(f.an-nsw.an).toFixed(2):'';return[f.n,f.dept,f.area,f.type||'Fee',f.amt,f.leg,f.conc||'',getIdx(f).txt,nsw.amt+(nsw.note?(' — '+nsw.note):''),d?((d>0?'+':'')+d+' (Vic-NSW)'):'',f.src,f.note||''];});
   const csv=[hdr,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download='vic-govt-fees-penalties-2025-26.csv';a.click();
