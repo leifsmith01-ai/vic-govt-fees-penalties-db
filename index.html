@@ -31,7 +31,7 @@ select:focus { border-color: #003087; }
 .btn-outline:hover { background: #f5f7fa; }
 .count-chip { background: #e8f0fe; color: #003087; padding: 3px 10px; border-radius: 12px; font-size: 11.5px; font-weight: 600; margin-left: auto; }
 .table-wrap { padding: 14px 20px; overflow: auto; }
-table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.07); min-width: 900px; }
+table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.07); min-width: 1100px; }
 thead tr { background: #003087; }
 th { padding: 9px 11px; text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.6px; color: white; font-weight: 600; white-space: nowrap; cursor: pointer; user-select: none; }
 th:hover { background: #00246b; }
@@ -67,6 +67,12 @@ tr:hover td { background: #fafbff; }
 .no-conc { font-size: 11px; color: #aaa; }
 .src a { color: #003087; font-size: 11px; text-decoration: none; }
 .src a:hover { text-decoration: underline; }
+.idx-cell { font-size: 10.5px; color: #555; line-height: 1.4; }
+.idx-mu { color: #2d5a9e; }
+.idx-pen { color: #856404; }
+.idx-fixed { color: #6b4f00; }
+.idx-min { color: #4a5568; }
+.idx-ahpra { color: #2d7a3a; }
 .no-results { text-align: center; padding: 48px 20px; color: #999; }
 .footer { background: white; border-top: 1px solid #e0e4ed; padding: 9px 20px; font-size: 11px; color: #999; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px; }
 .disclaimer { background: #fffbea; border-left: 3px solid #f59e0b; padding: 8px 14px; margin: 0 20px 12px; font-size: 11px; color: #7c5a00; border-radius: 3px; }
@@ -152,6 +158,7 @@ tr:hover td { background: #fafbff; }
       <th onclick="sort(3)">Amount 2025–26 <span class="si">↕</span></th>
       <th onclick="sort(4)">Governing Legislation <span class="si">↕</span></th>
       <th onclick="sort(5)">Concessions <span class="si">↕</span></th>
+      <th onclick="sort(6)">Indexation Basis <span class="si">↕</span></th>
       <th>Source</th>
     </tr>
   </thead>
@@ -728,6 +735,38 @@ document.getElementById('withconc').textContent=D.filter(f=>f.conc&&f.conc!=='No
 document.getElementById('pencount').textContent=D.filter(f=>f.type==='Penalty').length;
 
 let filtered=[...D],sc=-1,sd=1;
+function getIdx(f){
+  if(f.type==='Penalty') return {cls:'idx-pen',txt:'Penalty unit · Monetary Units Act 2004 · +3.00% p.a. (Treasurer determination)'};
+  const dc=f.dc||'';
+  const area=f.area||'';
+  // Fee-unit agencies
+  if(['b-vfa','b-djsir','b-deeca','b-epa','b-esv','b-vcglr','b-courts','b-parks','b-djcs','b-worksafe','b-dffh','b-land','b-dtf','b-planning'].includes(dc))
+    return {cls:'idx-mu',txt:'Fee unit · Monetary Units Act 2004 · +3.00% p.a. (Treasurer determination)'};
+  // Transport
+  if(dc==='b-transport'){
+    if(f.dept&&f.dept.includes('TAC')) return {cls:'idx-min',txt:'Treasurer determination · Transport Accident Act 1986 · reviewed annually'};
+    return {cls:'idx-mu',txt:'Fee unit · Monetary Units Act 2004 · +3.00% p.a. (Treasurer determination)'};
+  }
+  // SRO
+  if(dc==='b-sro'){
+    if(area==='Land Transfer Duty'||area==='Motor Vehicle Duty') return {cls:'idx-fixed',txt:'Rates fixed in Duties Act 2000; thresholds/brackets adjusted by Budget or Treasurer'};
+    if(area==='Land Tax') return {cls:'idx-fixed',txt:'Rates fixed in Land Tax Act 2005; general threshold ($300k) not automatically indexed — Budget adjustment'};
+    if(area==='Payroll Tax') return {cls:'idx-fixed',txt:'Rate fixed in Payroll Tax Act 2007; threshold set annually by Budget'};
+    if(area==='Fire Services Property Levy') return {cls:'idx-min',txt:'Rates set by Treasurer under Fire Services Property Levy Act 2012; reviewed annually'};
+    if(area==='Congestion Levy') return {cls:'idx-fixed',txt:'Fixed by Congestion Levy Act 2005; rate updated by Budget'};
+    if(area==='Gambling Taxation') return {cls:'idx-fixed',txt:'Rate fixed in Gambling Regulation Act 2003; no automatic indexation'};
+    if(area==='Planning Levy'||area==='Metropolitan Planning Levy') return {cls:'idx-fixed',txt:'Threshold indexed to CPI under Metropolitan Planning Levy Act 2008; rate fixed in legislation'};
+    return {cls:'idx-fixed',txt:'Fixed in legislation; Budget or amendment required to change'};
+  }
+  // Health
+  if(dc==='b-health'){
+    if(area==='Health Practitioner Registration') return {cls:'idx-ahpra',txt:'Set nationally by AHPRA registration boards; reviewed annually (not Vic-specific indexation)'};
+    if(area==='Ambulance Services') return {cls:'idx-min',txt:'Ministerial Determination · Health Services Act 1986 · reviewed annually'};
+    if(area==='Hospital Fees') return {cls:'idx-min',txt:'Ministerial Determination · Health Services Act 1988 · reviewed annually'};
+    return {cls:'idx-mu',txt:'Fee unit · Monetary Units Act 2004 · +3.00% p.a.'};
+  }
+  return {cls:'idx-mu',txt:'Fee unit · Monetary Units Act 2004 · +3.00% p.a. (Treasurer determination)'};
+}
 function filter(){
   const q=document.getElementById('q').value.toLowerCase();
   const fd=document.getElementById('fDept').value;
@@ -742,9 +781,10 @@ function filter(){
   if(sc>=0)doSort();render();
 }
 function doSort(){
-  const keys=['n','dept','area','amt','leg','conc'];
+  const keys=['n','dept','area','amt','leg','conc','_idx'];
   const k=keys[sc];
-  filtered.sort((a,b)=>k==='amt'?sd*(a.an-b.an):sd*(a[k]||'').localeCompare(b[k]||''));
+  if(k==='_idx') filtered.sort((a,b)=>sd*getIdx(a).txt.localeCompare(getIdx(b).txt));
+  else filtered.sort((a,b)=>k==='amt'?sd*(a.an-b.an):sd*(a[k]||'').localeCompare(b[k]||''));
 }
 function sort(c){if(sc===c)sd*=-1;else{sc=c;sd=1;}doSort();render();}
 function render(){
@@ -753,7 +793,7 @@ function render(){
   const nr=document.getElementById('nores');
   if(!filtered.length){tb.innerHTML='';nr.style.display='block';return;}
   nr.style.display='none';
-  tb.innerHTML=filtered.map(f=>`<tr>
+  tb.innerHTML=filtered.map(f=>{const ix=getIdx(f);return`<tr>
     <td><div class="fee-name">${f.n}</div>${f.note?'<div class="note">'+f.note+'</div>':''}</td>
     <td><span class="badge ${f.dc}">${f.dept}</span></td>
     <td>${f.area}</td>
@@ -761,8 +801,9 @@ function render(){
     <td class="amount">${f.amt}</td>
     <td class="leg">${f.leg}</td>
     <td class="${f.conc&&f.conc!=='None'?'conc':'no-conc'}">${f.conc||'None'}</td>
+    <td class="idx-cell ${ix.cls}">${ix.txt}</td>
     <td class="src"><a href="${f.src}" target="_blank">View ↗</a></td>
-  </tr>`).join('');
+  </tr>`}).join('');
 }
 function clear_(){
   document.getElementById('q').value='';
@@ -770,8 +811,8 @@ function clear_(){
   filter();
 }
 function exportCSV(){
-  const hdr=['Fee/Penalty','Department/Agency','Area','Type','Amount 2025-26','Governing Legislation','Concessions','Source URL','Notes'];
-  const rows=filtered.map(f=>[f.n,f.dept,f.area,f.type||'Fee',f.amt,f.leg,f.conc||'',f.src,f.note||'']);
+  const hdr=['Fee/Penalty','Department/Agency','Area','Type','Amount 2025-26','Governing Legislation','Concessions','Indexation Basis','Source URL','Notes'];
+  const rows=filtered.map(f=>[f.n,f.dept,f.area,f.type||'Fee',f.amt,f.leg,f.conc||'',getIdx(f).txt,f.src,f.note||'']);
   const csv=[hdr,...rows].map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
   a.download='vic-govt-fees-penalties-2025-26.csv';a.click();
